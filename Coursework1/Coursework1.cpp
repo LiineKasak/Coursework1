@@ -101,7 +101,7 @@ DATE3* GetCurrentDate() {
 HEADER_E* InsertItem(HEADER_E *p, char *pNewItemID)
 {
 	if (!CheckID(pNewItemID)) throw "ID is not valid!";
-	ITEM10 *item = (ITEM10 *)GetItem(1, pNewItemID); // ??????????????????????????????????????? mingi exception catchida wtf
+	ITEM10 *item = (ITEM10 *)GetItem(1, pNewItemID);
 	item->Date = *GetCurrentDate();
 	item->pNext = NULL;
 
@@ -159,6 +159,83 @@ HEADER_E* InsertItem(HEADER_E *p, char *pNewItemID)
 	return p;
 }
 
+
+HEADER_E* RemoveItem(HEADER_E *p, char *pItemID)
+{
+	if (!CheckID(pItemID)) throw "ID is not valid!";
+
+	char c1 = pItemID[0];
+	char c2 = split(pItemID)[1][0];
+
+	// Find first initial position
+	HEADER_E *pPrior;
+	while (p->cBegin < c1) {
+		pPrior = p;
+		p = p->pNext;
+		p->pPrior = pPrior;
+	}
+
+	// First initial not in header
+	if (p->cBegin != c1) throw "ID does not exist!";
+
+
+	// Find second initial position
+	void **ppItems = p->ppItems;
+	int letterNr = int(c2) - int('A');
+	ITEM10 *item = (ITEM10 *)*(ppItems + letterNr); // 26 slots - for every letter
+
+	// No items with same first and last initial
+	if (!item) throw "ID does not exist!";
+
+	// There exist items with the same first and second initial
+	ITEM10 *lastItem = NULL;
+	while (item->pNext) {
+		if (item->pID == pItemID) break;
+		lastItem = item;
+		item = item->pNext;
+	}
+
+	
+	// Remove item
+	if (lastItem && item->pNext) lastItem->pNext = item->pNext;
+	cout << 1;
+	delete[] item->pID;
+	cout << 2;
+	delete item->pNext;
+	cout << 3;
+	delete item; // TODO: make this work
+	cout << "delete 1" << endl;
+
+	// Check if header empty
+	bool isEmpty = true;
+	for (int letter = 0; letter < 26; letter++) {
+		cout << letter << endl;
+		if (*(ppItems + letter)) {
+			cout << *(ppItems + letter) << endl;
+			cout << ((ITEM10*)*(ppItems + letter))->pID << endl;
+			isEmpty = false;
+			break;
+		}
+		else {
+			cout << *(ppItems + letter) << endl;
+		}
+	}
+	if (isEmpty) {
+		// Remove header if empty
+		cout << "delete header" << endl;
+		HEADER_E *removableHeader = p;
+		p->pPrior->pNext = p->pNext;
+		p = p->pPrior;
+		cout << "delete 2" << endl;
+		delete removableHeader;
+	}
+
+	// Go to first position
+	while (p->pPrior) p = p->pPrior;
+	return p;
+}
+
+
 int main()
 {
 	int ITEM_NR = 10;
@@ -169,15 +246,16 @@ int main()
 	// PrintDataStructure(p);
 
 	// #2 Add item
-	// string s = "Red Blue";
+	//string s = "Red Blue";
 	// string s = "Red Delta";
 	string s = "Kori Blue";
 	char *ID = &s[0];
 	p = InsertItem(p, ID);
-	
+	//PrintDataStructure(p);
 	// #3 Remove item
+	p = RemoveItem(p, ID);
 
-	PrintDataStructure(p);
+	//PrintDataStructure(p);
 	return 0;
 }
 
