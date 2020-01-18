@@ -44,7 +44,7 @@ void PrintDataStructure(HEADER_E *p)
 
 		for (int letter = 0; letter < 26; letter++) {
 			ITEM10 *item = (ITEM10*) *(ppItems + letter);
-
+			// cout << letter << " " << ppItems + letter << " " << *(ppItems + letter) << endl;
 			while (item) {
 				PrintItem(item, i++);
 				item = item->pNext;
@@ -59,8 +59,12 @@ void PrintDataStructure(HEADER_E *p)
 
 bool IsAlphabetic(string s)
 {
-	return find_if(s.begin(), s.end(),
-			[](char c) { return !isalpha(c); }) != s.end();
+	char *str = &s[0];
+	while (*str) {
+		if (!isalpha(*str)) return false;
+		str++;
+	}
+	return true;
 }
 
 bool CheckID(char *ID)
@@ -100,10 +104,14 @@ DATE3* GetCurrentDate() {
 
 HEADER_E* InsertItem(HEADER_E *p, char *pNewItemID)
 {
+	cout << "Inserting item " << pNewItemID << endl;
 	if (!CheckID(pNewItemID)) throw "ID is not valid!";
+
 	ITEM10 *item = (ITEM10 *)GetItem(1, pNewItemID);
+	if (!item) throw "Not a valid item!";
+
 	item->Date = *GetCurrentDate();
-	item->pNext = NULL;
+	item->pNext = nullptr;
 
 	char c1 = pNewItemID[0];
 	char c2 = split(pNewItemID)[1][0];
@@ -146,10 +154,10 @@ HEADER_E* InsertItem(HEADER_E *p, char *pNewItemID)
 	}
 	else {
 		// There exist items with the same first and second initial
-		if (lastItem->pID == pNewItemID) throw "ID already exists!";
+		if ((string) lastItem->pID == (string) pNewItemID) throw "ID already exists!";
 		while (lastItem->pNext) {
 			lastItem = lastItem->pNext;
-			if (lastItem->pID == pNewItemID) throw "ID already exists!";
+			if ((string) lastItem->pID == (string) pNewItemID) throw "ID already exists!";
 		}
 		lastItem->pNext = item;
 	}
@@ -162,7 +170,12 @@ HEADER_E* InsertItem(HEADER_E *p, char *pNewItemID)
 
 HEADER_E* RemoveItem(HEADER_E *p, char *pItemID)
 {
-	if (!CheckID(pItemID)) throw "ID is not valid!";
+	cout << "Removing item " << pItemID << endl;
+	if (!CheckID(pItemID)) {
+		cout << "ID is not valid!" << endl;
+		throw "ID is not valid!";
+		return 0;
+	}
 
 	char c1 = pItemID[0];
 	char c2 = split(pItemID)[1][0];
@@ -176,57 +189,71 @@ HEADER_E* RemoveItem(HEADER_E *p, char *pItemID)
 	}
 
 	// First initial not in header
-	if (p->cBegin != c1) throw "ID does not exist!";
+	if (p->cBegin != c1) {
+		cout << "ID does not exist!" << endl;
+		throw "ID does not exist!";
+		return 0;
+	}
 
 
 	// Find second initial position
 	void **ppItems = p->ppItems;
 	int letterNr = int(c2) - int('A');
-	ITEM10 *item = (ITEM10 *)*(ppItems + letterNr); // 26 slots - for every letter
+	ppItems += letterNr;
+	ITEM10 *item = (ITEM10 *)*(ppItems); // 26 slots - for every letter
 
 	// No items with same first and last initial
-	if (!item) throw "ID does not exist!";
+	if (!item) {
+		cout << "ID does not exist!" << endl;
+		throw "ID does not exist!";
+		return 0;
+	}
 
 	// There exist items with the same first and second initial
 	ITEM10 *lastItem = NULL;
 	while (item->pNext) {
-		if (item->pID == pItemID) break;
+		if ((string) item->pID == (string) pItemID) break;
 		lastItem = item;
 		item = item->pNext;
 	}
 
 	
 	// Remove item
-	if (lastItem && item->pNext) lastItem->pNext = item->pNext;
-	cout << 1;
-	delete[] item->pID;
-	cout << 2;
-	delete item->pNext;
-	cout << 3;
-	delete item; // TODO: make this work
-	cout << "delete 1" << endl;
+	if (item->pNext) {
+		// cout << "Removable items next item is " << item->pNext->pID << endl;
+		if (lastItem && lastItem != item) {
+			// cout << "Last item was " << lastItem->pID << endl;
+			lastItem->pNext = item->pNext;
+		}
+		else {
+			// cout << "First item is now " << item->pNext->pID << endl;
+			*(ppItems) = item->pNext;
+		}
+	}
+	else if (!lastItem) *(ppItems) = nullptr;
+	else lastItem->pNext = nullptr;
 
+	delete[] item->pID;
+	delete item; // TODO: make this work
+
+
+	ppItems -= letterNr;
 	// Check if header empty
 	bool isEmpty = true;
 	for (int letter = 0; letter < 26; letter++) {
-		cout << letter << endl;
+		// cout << letter << " " << ppItems + letter << " " << *(ppItems + letter) << endl;
 		if (*(ppItems + letter)) {
-			cout << *(ppItems + letter) << endl;
-			cout << ((ITEM10*)*(ppItems + letter))->pID << endl;
 			isEmpty = false;
+			// cout << "Not empty at letter " << char(int('A') + letter)  << endl;
 			break;
-		}
-		else {
-			cout << *(ppItems + letter) << endl;
 		}
 	}
 	if (isEmpty) {
 		// Remove header if empty
-		cout << "delete header" << endl;
+		// cout << "delete header" << endl;
 		HEADER_E *removableHeader = p;
 		p->pPrior->pNext = p->pNext;
 		p = p->pPrior;
-		cout << "delete 2" << endl;
 		delete removableHeader;
 	}
 
@@ -236,26 +263,67 @@ HEADER_E* RemoveItem(HEADER_E *p, char *pItemID)
 }
 
 
+void PrintInfo() {
+	printf(
+		"\n\nTo execute a method, on the CLI type the name of the method followed by space separated values as paramaters according to their order (NB! parameters must match their type).\n\n"
+	);
+	printf("Methods:\n");
+	printf("-- Print\n");
+	printf("-- Insert [char* pID]\n");
+	printf("-- Remove [char* pID]\n");
+	printf("Press ENTER to see info.\n");
+}
+
+
+
 int main()
 {
 	int ITEM_NR = 10;
 	HEADER_E *p = GetStruct5(ITEM_NR, 100);
-	ITEM10 *pNewItem = (ITEM10 *)GetItem(10);
+	cout << "Constructed datastructure 5 of 100 item nr 10." << endl;
 
 	// #1 Print
-	// PrintDataStructure(p);
+	//PrintDataStructure(p);
 
 	// #2 Add item
-	//string s = "Red Blue";
+	// string s = "Red Blue";
 	// string s = "Red Delta";
-	string s = "Kori Blue";
-	char *ID = &s[0];
-	p = InsertItem(p, ID);
+	//string s = "Kori Blue";
+	//char *ID = &s[0];
+	//p = InsertItem(p, ID);
 	//PrintDataStructure(p);
 	// #3 Remove item
-	p = RemoveItem(p, ID);
+	//p = RemoveItem(p, (char*) "Ultramarine Blue");
+	//p = RemoveItem(p, (char*) "Tiffany Blue");
+	//p = RemoveItem(p, (char*) "Piggy Pink");
 
-	//PrintDataStructure(p);
+	// PrintDataStructure(p);
+
+	string input, func, s1;
+	vector<string> para;
+	PrintInfo();
+	while (true) {
+		getline(cin, input);
+
+		if (input == "")  PrintInfo();
+		else {
+			para = split(input);
+			func = para.at(0);
+			if (func == "Print") PrintDataStructure(p);
+			else {
+				if (para.size() != 3) cout << "Invalid number of parameters! Try again.." << endl;
+				else {
+					s1 = para.at(1);
+					s1.append(" ");
+					s1.append(para.at(2));
+
+					if (func == "Remove") RemoveItem(p, &s1[0]);
+					else if (func == "Insert") InsertItem(p, &s1[0]);
+					else cout << "Invalid function! Try again..";
+				}
+			}
+		}
+	}
 	return 0;
 }
 
