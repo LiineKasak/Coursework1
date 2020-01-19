@@ -14,6 +14,8 @@
 #include "Items.h"
 #include "Headers.h"
 #include "ICS0017DataSource.h"
+#include "DataStructure.h"
+
 
 using namespace std;
 
@@ -28,31 +30,39 @@ vector<string> split(const string& str)
 	return cont;
 }
 
-void PrintItem(ITEM10* item, int i) {
-	cout << i << ") " << item->pID << ' ' << item->Code << ' ';
+void PrintItem(ITEM10* item) {
+	if (!item) return;
+	cout << item->pID << ' ' << item->Code << ' ';
 	DATE3 *date = &(item->Date);
 	cout << date->Day << ' ' << date->pMonth << ' ' << date->Year << endl;
 }
 
-void PrintDataStructure(HEADER_E *p)
+void PrintDataStructure(HEADER_E *h)
 {
 	int i = 1;
 	void **ppItems;
+	HEADER_E *p = h;
+	HEADER_E *pPrior = nullptr;
 
 	while (p) {
+		p->pPrior = pPrior;
 		ppItems = p->ppItems;
 
 		for (int letter = 0; letter < 26; letter++) {
 			ITEM10 *item = (ITEM10*) *(ppItems + letter);
 			// cout << letter << " " << ppItems + letter << " " << *(ppItems + letter) << endl;
 			while (item) {
-				PrintItem(item, i++);
+				cout << i++ << ") ";
+				PrintItem(item);
 				item = item->pNext;
 			}
 		}
 
+		pPrior = p;
 		p = p->pNext;
 	}
+	p = pPrior;
+	while (p->pPrior) p = p->pPrior;
 }
 
 
@@ -276,7 +286,7 @@ void PrintInfo() {
 
 
 
-int main()
+int main1()
 {
 	int ITEM_NR = 10;
 	HEADER_E *p = GetStruct5(ITEM_NR, 100);
@@ -327,13 +337,76 @@ int main()
 	return 0;
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
+// COURSEWORK 2
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+void PrintInfo2() {
+	printf(
+		"\n\nTo execute a method, on the CLI type the name of the method followed by space separated values as paramaters according to their order (NB! parameters must match their type).\n\n"
+	);
+	printf("Methods:\n");
+	printf("-- Print\n");
+	printf("-- GetItemNumber\n");
+	printf("-- GetItemByID [char* pID]\n");
+	printf("-- GetItemByCode [long int code]\n");
+	printf("-- GetItemByDate [int day] [char* month] [int year]\n");
+	printf("-- AddItem [char* pID]\n");
+	printf("-- RemoveItem [char* pID]\n");
+	printf("-- GenerateNew\n");
+	// printf("-- Compare\n");
+	printf("-- Write [char* filename]");
+	printf("Press ENTER to see info.\n");
+}
+
+
+int main2()
+{
+	DataStructure *d = new DataStructure();
+	DataStructure *d2 = new DataStructure();
+	*d2 = *d;
+	PrintInfo2();
+
+	string input, func, s1;
+	vector<string> para;
+	DATE3 *date;
+	while (true) {
+		getline(cin, input);
+		// PrintDataStructure(d2->h);
+
+		if (input == "")  PrintInfo2();
+		else {
+			para = split(input);
+			func = para.at(0);
+			if (func == "Print") PrintDataStructure(d->h);
+			else if (func == "GetItemNumber") cout << d->GetItemsNumber() << endl;
+			else if (func == "GetItemByCode") PrintItem(d->GetItem1(strtoul(&para.at(1)[0], NULL, 0)));
+			else if (func == "GetItemByDate") {
+				date = new DATE3;
+				date->Day = stoi(para.at(1));
+				date->pMonth = &para.at(2)[0];
+				date->Year = stoi(para.at(3));
+				PrintItem(d->GetItem1(*date));
+			}
+			else if (func == "GenerateNew") d = new DataStructure();
+			else if (func == "Compare") cout << (d == d2) << endl;
+			else if (func == "Write") d->Write(&para.at(1)[0]);
+			else if (func == "Read") d = new DataStructure(&para.at(1)[0]);
+			else {
+				s1 = para.at(1);
+				s1.append(" ");
+				s1.append(para.at(2));
+				if (func == "GetItemByID") PrintItem(d->GetItem1(&s1[0]));
+				else if (func == "AddItem") *d += (ITEM10*)GetItem(10, &s1[0]);
+				else if (func == "RemoveItem") *d -= &s1[0];
+			}
+		}
+	}
+	return 0;
+}
+
+int main() {
+
+	//main1();
+	main2();
+
+	return 0;
+}
